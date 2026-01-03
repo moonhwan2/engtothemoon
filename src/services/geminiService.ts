@@ -1,19 +1,56 @@
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-import { GoogleGenAI } from "@google/genai";
+// Gemini API 키 (환경 변수 사용 권장)
+const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || "YOUR_API_KEY_HERE";
 
-export async function generateSlogan(keyword: string): Promise<string> {
-  // Always use process.env.API_KEY directly as per SDK requirements
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  
+// Gemini AI 초기화
+const genAI = new GoogleGenerativeAI(API_KEY);
+
+// 텍스트 생성 함수
+export async function generateText(prompt: string): Promise<string> {
   try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: `학원 강사 랜딩페이지를 위한 임팩트 있는 슬로건을 하나 만들어줘. 키워드: "${keyword}". 짧고 강렬한 문구 1개만 출력해줘.`,
-    });
-    // response.text is a property, not a method
-    return response.text || "미래를 바꾸는 최고의 강의";
+    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    return response.text();
   } catch (error) {
-    console.error("Gemini Error:", error);
-    return "성공을 향한 가장 확실한 선택";
+    console.error("Gemini API Error:", error);
+    throw new Error("텍스트 생성에 실패했습니다.");
   }
+}
+
+// 영어 문장 교정 함수
+export async function correctEnglish(text: string): Promise<string> {
+  const prompt = `Please correct the following English text and explain any mistakes:
+
+"${text}"
+
+Provide:
+1. Corrected version
+2. Brief explanation of errors`;
+
+  return await generateText(prompt);
+}
+
+// 영어 번역 함수
+export async function translateToEnglish(koreanText: string): Promise<string> {
+  const prompt = `Translate the following Korean text to natural English:
+
+"${koreanText}"`;
+
+  return await generateText(prompt);
+}
+
+// 영어 학습 도움 함수
+export async function explainGrammar(sentence: string): Promise<string> {
+  const prompt = `Explain the grammar and structure of this English sentence in Korean:
+
+"${sentence}"
+
+Please provide:
+1. Grammar breakdown
+2. Key vocabulary
+3. Usage tips`;
+
+  return await generateText(prompt);
 }
