@@ -65,7 +65,7 @@ body {
   animation: fade-in-up 0.6s ease-out;
 }
 
-/* 기본 버튼 스타일 */
+
 button {
   cursor: pointer;
   border: none;
@@ -73,13 +73,13 @@ button {
   font-family: inherit;
 }
 
-/* 링크 스타일 */
+
 a {
   text-decoration: none;
   color: inherit;
 }
 
-/* 입력 필드 기본 스타일 */
+
 input, textarea {
   font-family: inherit;
   outline: none;
