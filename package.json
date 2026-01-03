@@ -26,3 +26,18 @@
     "vite": "^5.0.8"
   }
 }
+```
+
+---
+
+## ⚠️ 보안을 위한 추가 작업 (중요!):
+
+### 1. **.env 파일 생성** (프로젝트 루트):
+```
+VITE_GEMINI_API_KEY=AIzaSyBplv-HrQskzYPVityQXHnH3nBIver-naw
+```
+
+### 2. **.gitignore 확인** (이미 있어야 함):
+```
+.env
+.env.local
