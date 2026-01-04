@@ -207,32 +207,39 @@ const App: React.FC = () => {
         />
         
         <main className="pt-28">
-          <Routes>
-            <Route path="/" element={<HomeView instructorSlogan={instructorSlogan} heroImageUrl={heroImageUrl} />} />
-            <Route path="/intro" element={<InstructorView info={instructorInfo} />} />
-            <Route path="/login" element={currentUser ? <Navigate to="/" /> : <LoginView onLogin={(u) => setCurrentUser(u)} />} />
-            
-            <Route path="/content" element={canAccess ? <ContentView contents={contents} /> : <Navigate to="/login" />} />
-            <Route path="/resources" element={canAccess ? <ResourceView resources={resources} /> : <Navigate to="/login" />} />
-            <Route path="/videos" element={canAccess ? <VideoView videos={videos} /> : <Navigate to="/login" />} />
-            <Route path="/qna" element={canAccess ? <QnaView qna={qna} /> : <Navigate to="/login" />} />
-            
-            <Route path="/admin" element={currentUser?.status === 'admin' ? (
-              <AdminPanel 
-                instructorInfo={instructorInfo}
-                brandName={brandName}
-                heroImageUrl={heroImageUrl}
-                instructorSlogan={instructorSlogan}
-                copyrightText={copyrightText}
-                contents={contents}
-                videos={videos}
-                saveLocal={saveLocal}
-                isDemoMode={isDemoMode}
-              />
-            ) : <Navigate to="/login" />} />
-            
-            <Route path="*" element={<Navigate to="/" />} />
-          </Routes>
+         <Routes>
+  <Route path="/" element={<HomeView instructorSlogan={instructorSlogan} heroImageUrl={heroImageUrl} />} />
+  <Route path="/intro" element={<InstructorView info={instructorInfo} />} />
+  
+  {/* 회원가입 라우트 추가 */}
+  <Route path="/signup" element={currentUser ? <Navigate to="/" /> : <SignUpView />} />
+  
+  <Route path="/login" element={currentUser ? <Navigate to="/" /> : <LoginView onLogin={(u) => setCurrentUser(u)} />} />
+  
+  <Route path="/content" element={canAccess ? <ContentView contents={contents} /> : <Navigate to="/login" />} />
+  <Route path="/resources" element={canAccess ? <ResourceView resources={resources} /> : <Navigate to="/login" />} />
+  <Route path="/videos" element={canAccess ? <VideoView videos={videos} /> : <Navigate to="/login" />} />
+  <Route path="/qna" element={canAccess ? <QnaView qna={qna} /> : <Navigate to="/login" />} />
+  
+  <Route path="/admin" element={currentUser?.status === 'admin' ? (
+    <AdminPanel 
+      instructorInfo={instructorInfo}
+      brandName={brandName}
+      heroImageUrl={heroImageUrl}
+      instructorSlogan={instructorSlogan}
+      copyrightText={copyrightText}
+      contents={contents}
+      videos={videos}
+      saveLocal={saveLocal}
+      isDemoMode={isDemoMode}
+    />
+  ) : <Navigate to="/login" />} />
+  
+  {/* 관리자 회원 승인 페이지 추가 */}
+  <Route path="/admin/approval" element={currentUser?.status === 'admin' ? <AdminApprovalView /> : <Navigate to="/login" />} />
+  
+  <Route path="*" element={<Navigate to="/" />} />
+</Routes>
         </main>
 
         <Footer copyrightText={copyrightText} />
@@ -721,7 +728,173 @@ const AdminPanel: React.FC<{
     </div>
   );
 };
+const SignUpView: React.FC = () => {
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    confirmPassword: '',
+    name: '',
+    phone: '',
+    academy: ''
+  });
+  const [message, setMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (formData.password !== formData.confirmPassword) {
+      setMessage('비밀번호가 일치하지 않습니다.');
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      setMessage('비밀번호는 6자 이상이어야 합니다.');
+      return;
+    }
+
+    setIsLoading(true);
+    
+    try {
+      // Firestore에 회원가입 신청 저장
+      await addDoc(collection(db, "pendingUsers"), {
+        email: formData.email,
+        name: formData.name,
+        phone: formData.phone,
+        academy: formData.academy || 'Elite Hub',
+        password: formData.password, // 실제 프로덕션에서는 해싱 필요
+        status: 'pending',
+        createdAt: new Date().toISOString()
+      });
+
+      setMessage('회원가입 신청이 완료되었습니다. 관리자 승인을 기다려주세요.');
+      setFormData({
+        email: '',
+        password: '',
+        confirmPassword: '',
+        name: '',
+        phone: '',
+        academy: ''
+      });
+    } catch (error: any) {
+      console.error(error);
+      setMessage(`회원가입 신청 중 오류가 발생했습니다: ${error.message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="max-w-md mx-auto py-20 px-6">
+      <div className="glass-card p-12 rounded-[3.5rem] shadow-2xl border-white/10">
+        <div className="text-center mb-10">
+          <h2 className="text-4xl font-black mb-2 uppercase tracking-tight">회원가입</h2>
+          <p className="text-gray-500 text-sm">학생 정보를 입력하여 가입을 신청하세요.</p>
+        </div>
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <input
+              name="name"
+              type="text"
+              placeholder="이름"
+              value={formData.name}
+              onChange={handleChange}
+              required
+              className="w-full bg-white/5 border border-white/10 px-6 py-4 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold transition-all"
+            />
+          </div>
+
+          <div>
+            <input
+              name="phone"
+              type="tel"
+              placeholder="전화번호"
+              value={formData.phone}
+              onChange={handleChange}
+              required
+              className="w-full bg-white/5 border border-white/10 px-6 py-4 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold transition-all"
+            />
+          </div>
+
+          <div>
+            <input
+              name="email"
+              type="email"
+              placeholder="이메일"
+              value={formData.email}
+              onChange={handleChange}
+              required
+              className="w-full bg-white/5 border border-white/10 px-6 py-4 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold transition-all"
+            />
+          </div>
+
+          <div>
+            <input
+              name="academy"
+              type="text"
+              placeholder="학원명 (선택)"
+              value={formData.academy}
+              onChange={handleChange}
+              className="w-full bg-white/5 border border-white/10 px-6 py-4 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold transition-all"
+            />
+          </div>
+
+          <div>
+            <input
+              name="password"
+              type="password"
+              placeholder="비밀번호 (6자 이상)"
+              value={formData.password}
+              onChange={handleChange}
+              required
+              className="w-full bg-white/5 border border-white/10 px-6 py-4 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold transition-all"
+            />
+          </div>
+
+          <div>
+            <input
+              name="confirmPassword"
+              type="password"
+              placeholder="비밀번호 확인"
+              value={formData.confirmPassword}
+              onChange={handleChange}
+              required
+              className="w-full bg-white/5 border border-white/10 px-6 py-4 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold transition-all"
+            />
+          </div>
+
+          {message && (
+            <div className={`p-4 rounded-2xl text-sm font-bold ${message.includes('완료') ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+              {message}
+            </div>
+          )}
+
+          <button 
+            type="submit" 
+            disabled={isLoading}
+            className="w-full bg-blue-600 py-5 rounded-2xl font-black text-xl shadow-xl shadow-blue-600/20 active:scale-95 transition-all disabled:opacity-50"
+          >
+            {isLoading ? '처리 중...' : '회원가입 신청'}
+          </button>
+
+          <div className="text-center pt-4">
+            <a href="#/login" className="text-sm text-gray-400 hover:text-white transition-colors">
+              이미 계정이 있으신가요? <span className="text-blue-400 font-bold">로그인</span>
+            </a>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
 // --- LOGIN VIEW ---
 
 const LoginView: React.FC<{ onLogin: (u: UserType) => void }> = ({ onLogin }) => {
