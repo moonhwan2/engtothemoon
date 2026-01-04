@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   HashRouter as Router, 
@@ -50,15 +49,12 @@ import {
 
 // Components
 import { Navbar, Footer } from './Layout';
-// Import Gemini slogan generation service
 import { generateSlogan } from './src/services/geminiService';
 
 const App: React.FC = () => {
-  // --- STATE ---
   const [currentUser, setCurrentUser] = useState<UserType | null>(null);
   const [isDemoMode, setIsDemoMode] = useState(false);
   
-  // Data States
   const [instructorInfo, setInstructorInfo] = useState<InstructorInfo>({
     name: "엘리트 강사",
     role: "대표 강사 / 수석 연구원",
@@ -71,16 +67,13 @@ const App: React.FC = () => {
   const [videos, setVideos] = useState<ReviewVideo[]>([]);
   const [qna, setQna] = useState<QnAPost[]>([]);
   
-  // Branding States
   const [brandName, setBrandName] = useState("ELITE HUB");
   const [heroImageUrl, setHeroImageUrl] = useState("https://images.unsplash.com/photo-1516979187457-637abb4f9353?auto=format&fit=crop&q=80&w=1920");
   const [instructorSlogan, setInstructorSlogan] = useState("성공을 향한 가장 확실한 선택");
   const [copyrightText, setCopyrightText] = useState("© 2024 ELITE HUB. All rights reserved.");
 
-  // --- ACCESS CHECK ---
   const canAccess = currentUser?.status === 'approved' || currentUser?.status === 'admin';
 
-  // --- DATA PERSISTENCE HELPER ---
   const saveLocal = (key: string, data: any) => {
     localStorage.setItem(`elite_hub_${key}`, JSON.stringify(data));
   };
@@ -102,11 +95,13 @@ const App: React.FC = () => {
 
     const vd = localStorage.getItem('elite_hub_videos');
     if (vd) setVideos(JSON.parse(vd));
+    
+    const rs = localStorage.getItem('elite_hub_resources');
+    if (rs) setResources(JSON.parse(rs));
   };
 
-  // --- DATA SYNC ---
   useEffect(() => {
-    loadLocal(); // Load local data first
+    loadLocal();
 
     const unsubscribes: (() => void)[] = [];
 
@@ -119,10 +114,8 @@ const App: React.FC = () => {
       }
     };
 
-    // Firestore data synchronization
     const syncData = () => {
       try {
-        // Branding sync
         unsubscribes.push(onSnapshot(doc(db, "settings", "branding"), (snap) => {
           if (snap.exists()) {
             const data = snap.data();
@@ -133,23 +126,26 @@ const App: React.FC = () => {
           }
         }, handleFirebaseError));
 
-        // Instructor sync
         unsubscribes.push(onSnapshot(doc(db, "settings", "instructor"), (snap) => {
           if (snap.exists()) setInstructorInfo(snap.data() as InstructorInfo);
         }, handleFirebaseError));
 
-        // Contents sync
         unsubscribes.push(onSnapshot(collection(db, "contents"), (snap) => {
           const list = snap.docs.map(d => ({ id: d.id, ...d.data() } as CourseContent));
           setContents(list);
           saveLocal('contents', list);
         }, handleFirebaseError));
 
-        // Videos sync
         unsubscribes.push(onSnapshot(collection(db, "videos"), (snap) => {
           const list = snap.docs.map(d => ({ id: d.id, ...d.data() } as ReviewVideo));
           setVideos(list);
           saveLocal('videos', list);
+        }, handleFirebaseError));
+
+        unsubscribes.push(onSnapshot(collection(db, "resources"), (snap) => {
+          const list = snap.docs.map(d => ({ id: d.id, ...d.data() } as ResourceFile));
+          setResources(list);
+          saveLocal('resources', list);
         }, handleFirebaseError));
 
       } catch (e) {
@@ -202,44 +198,40 @@ const App: React.FC = () => {
           currentUser={currentUser} 
           onLogout={handleLogout} 
           canAccess={canAccess}
-          
           copyrightText={copyrightText}
         />
         
         <main className="pt-28">
-         <Routes>
-  <Route path="/" element={<HomeView instructorSlogan={instructorSlogan} heroImageUrl={heroImageUrl} />} />
-  <Route path="/intro" element={<InstructorView info={instructorInfo} />} />
-  
-  {/* 회원가입 라우트 추가 */}
-  <Route path="/signup" element={currentUser ? <Navigate to="/" /> : <SignUpView />} />
-  
-  <Route path="/login" element={currentUser ? <Navigate to="/" /> : <LoginView onLogin={(u) => setCurrentUser(u)} />} />
-  
-  <Route path="/content" element={canAccess ? <ContentView contents={contents} /> : <Navigate to="/login" />} />
-  <Route path="/resources" element={canAccess ? <ResourceView resources={resources} /> : <Navigate to="/login" />} />
-  <Route path="/videos" element={canAccess ? <VideoView videos={videos} /> : <Navigate to="/login" />} />
-  <Route path="/qna" element={canAccess ? <QnaView qna={qna} /> : <Navigate to="/login" />} />
-  
-  <Route path="/admin" element={currentUser?.status === 'admin' ? (
-    <AdminPanel 
-      instructorInfo={instructorInfo}
-      brandName={brandName}
-      heroImageUrl={heroImageUrl}
-      instructorSlogan={instructorSlogan}
-      copyrightText={copyrightText}
-      contents={contents}
-      videos={videos}
-      saveLocal={saveLocal}
-      isDemoMode={isDemoMode}
-    />
-  ) : <Navigate to="/login" />} />
-  
-  {/* 관리자 회원 승인 페이지 추가 */}
-  <Route path="/admin/approval" element={currentUser?.status === 'admin' ? <AdminApprovalView /> : <Navigate to="/login" />} />
-  
-  <Route path="*" element={<Navigate to="/" />} />
-</Routes>
+          <Routes>
+            <Route path="/" element={<HomeView instructorSlogan={instructorSlogan} heroImageUrl={heroImageUrl} />} />
+            <Route path="/intro" element={<InstructorView info={instructorInfo} />} />
+            <Route path="/signup" element={currentUser ? <Navigate to="/" /> : <SignUpView />} />
+            <Route path="/login" element={currentUser ? <Navigate to="/" /> : <LoginView onLogin={(u) => setCurrentUser(u)} />} />
+            
+            <Route path="/content" element={canAccess ? <ContentView contents={contents} /> : <Navigate to="/login" />} />
+            <Route path="/resources" element={canAccess ? <ResourceView resources={resources} /> : <Navigate to="/login" />} />
+            <Route path="/videos" element={canAccess ? <VideoView videos={videos} /> : <Navigate to="/login" />} />
+            <Route path="/qna" element={canAccess ? <QnaView qna={qna} /> : <Navigate to="/login" />} />
+            
+            <Route path="/admin" element={currentUser?.status === 'admin' ? (
+              <AdminPanel 
+                instructorInfo={instructorInfo}
+                brandName={brandName}
+                heroImageUrl={heroImageUrl}
+                instructorSlogan={instructorSlogan}
+                copyrightText={copyrightText}
+                contents={contents}
+                videos={videos}
+                resources={resources}
+                saveLocal={saveLocal}
+                isDemoMode={isDemoMode}
+              />
+            ) : <Navigate to="/login" />} />
+            
+            <Route path="/admin/approval" element={currentUser?.status === 'admin' ? <AdminApprovalView /> : <Navigate to="/login" />} />
+            
+            <Route path="*" element={<Navigate to="/" />} />
+          </Routes>
         </main>
 
         <Footer copyrightText={copyrightText} />
@@ -248,7 +240,7 @@ const App: React.FC = () => {
   );
 };
 
-// --- VIEWS ---
+// ============ VIEWS ============
 
 const HomeView: React.FC<{ instructorSlogan: string; heroImageUrl: string }> = ({ instructorSlogan, heroImageUrl }) => (
   <div className="relative w-full h-[100vh] -mt-28 flex items-center justify-center overflow-hidden">
@@ -389,8 +381,354 @@ const QnaView: React.FC<{ qna: QnAPost[] }> = ({ qna }) => (
   </div>
 );
 
-// --- ADMIN PANEL ---
+// ===== 회원가입 View =====
+const SignUpView: React.FC = () => {
+  const [formData, setFormData] = useState({
+    name: '',
+    phone: '',
+    academy: ''
+  });
+  const [message, setMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.name || !formData.phone) {
+      setMessage('이름과 전화번호를 모두 입력해주세요.');
+      return;
+    }
+
+    setIsLoading(true);
+    
+    try {
+      await addDoc(collection(db, "pendingUsers"), {
+        name: formData.name,
+        phone: formData.phone,
+        academy: formData.academy || 'Elite Hub',
+        status: 'pending',
+        createdAt: new Date().toISOString()
+      });
+
+      setMessage('회원가입 신청이 완료되었습니다. 관리자 승인을 기다려주세요.');
+      setFormData({
+        name: '',
+        phone: '',
+        academy: ''
+      });
+    } catch (error: any) {
+      console.error(error);
+      setMessage(`회원가입 신청 중 오류가 발생했습니다: ${error.message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="max-w-md mx-auto py-20 px-6">
+      <div className="glass-card p-12 rounded-[3.5rem] shadow-2xl border-white/10">
+        <div className="text-center mb-10">
+          <h2 className="text-4xl font-black mb-2 uppercase tracking-tight">회원가입</h2>
+          <p className="text-gray-500 text-sm">학생 정보를 입력하여 가입을 신청하세요.</p>
+        </div>
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <input
+              name="name"
+              type="text"
+              placeholder="이름"
+              value={formData.name}
+              onChange={handleChange}
+              required
+              className="w-full bg-white/5 border border-white/10 px-6 py-4 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold transition-all"
+            />
+          </div>
+
+          <div>
+            <input
+              name="phone"
+              type="tel"
+              placeholder="전화번호 (예: 010-1234-5678)"
+              value={formData.phone}
+              onChange={handleChange}
+              required
+              className="w-full bg-white/5 border border-white/10 px-6 py-4 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold transition-all"
+            />
+          </div>
+
+          <div>
+            <input
+              name="academy"
+              type="text"
+              placeholder="수강반 (선택사항)"
+              value={formData.academy}
+              onChange={handleChange}
+              className="w-full bg-white/5 border border-white/10 px-6 py-4 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold transition-all"
+            />
+          </div>
+
+          {message && (
+            <div className={`p-4 rounded-2xl text-sm font-bold ${message.includes('완료') ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+              {message}
+            </div>
+          )}
+
+          <button 
+            type="submit" 
+            disabled={isLoading}
+            className="w-full bg-blue-600 py-5 rounded-2xl font-black text-xl shadow-xl shadow-blue-600/20 active:scale-95 transition-all disabled:opacity-50"
+          >
+            {isLoading ? '처리 중...' : '회원가입 신청'}
+          </button>
+
+          <div className="text-center pt-4">
+            <a href="#/login" className="text-sm text-gray-400 hover:text-white transition-colors">
+              이미 계정이 있으신가요? <span className="text-blue-400 font-bold">로그인</span>
+            </a>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// ===== 관리자 승인 View =====
+const AdminApprovalView: React.FC = () => {
+  const [pendingUsers, setPendingUsers] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = onSnapshot(collection(db, "pendingUsers"), (snapshot) => {
+      const users = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setPendingUsers(users);
+      setIsLoading(false);
+    }, (error) => {
+      console.error("승인 대기 목록 불러오기 실패:", error);
+      setIsLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const handleApprove = async (userId: string, userData: any) => {
+    try {
+      await addDoc(collection(db, "users"), {
+        name: userData.name,
+        phone: userData.phone,
+        academy: userData.academy || 'Elite Hub',
+        status: 'approved',
+        approvedAt: new Date().toISOString()
+      });
+
+      await deleteDoc(doc(db, "pendingUsers", userId));
+
+      alert(`${userData.name}님이 승인되었습니다.`);
+    } catch (error: any) {
+      console.error("승인 처리 실패:", error);
+      alert(`승인 처리 중 오류가 발생했습니다: ${error.message}`);
+    }
+  };
+
+  const handleReject = async (userId: string, userName: string) => {
+    if (window.confirm(`${userName}님의 가입 신청을 거부하시겠습니까?`)) {
+      try {
+        await deleteDoc(doc(db, "pendingUsers", userId));
+        alert("거부되었습니다.");
+      } catch (error: any) {
+        console.error("거부 처리 실패:", error);
+        alert(`거부 처리 중 오류가 발생했습니다: ${error.message}`);
+      }
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="max-w-6xl mx-auto px-6 py-12">
+        <div className="glass-card p-10 rounded-[3rem]">
+          <p className="text-center text-gray-400">로딩 중...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-6xl mx-auto px-6 py-12">
+      <div className="glass-card p-10 rounded-[3rem] space-y-8">
+        <div className="flex items-center justify-between">
+          <h2 className="text-3xl font-black flex items-center gap-3">
+            <UserIcon className="text-blue-500" size={32} />
+            회원 가입 승인 관리
+          </h2>
+          <div className="px-4 py-2 bg-blue-500/20 rounded-xl">
+            <span className="text-sm font-bold text-blue-400">
+              대기 중: {pendingUsers.filter(u => u.status === 'pending').length}명
+            </span>
+          </div>
+        </div>
+
+        {pendingUsers.length === 0 ? (
+          <div className="text-center py-24">
+            <CheckCircle size={64} className="mx-auto mb-4 text-gray-600" />
+            <p className="text-gray-500 text-lg">승인 대기 중인 회원이 없습니다.</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {pendingUsers.map((user) => (
+              <div 
+                key={user.id} 
+                className="bg-white/5 border border-white/10 rounded-2xl p-6 flex items-center justify-between hover:bg-white/10 transition-all"
+              >
+                <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">이름</p>
+                    <p className="font-bold text-lg">{user.name}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">전화번호</p>
+                    <p className="font-mono text-sm text-gray-300">{user.phone}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">수강반</p>
+                    <p className="text-sm text-gray-300">{user.academy}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">신청일</p>
+                    <p className="text-sm text-gray-300">
+                      {new Date(user.createdAt).toLocaleDateString('ko-KR')}
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="flex gap-3 ml-6">
+                  <button
+                    onClick={() => handleApprove(user.id, user)}
+                    className="px-6 py-3 bg-green-600 rounded-xl font-bold hover:bg-green-500 transition-all flex items-center gap-2 shadow-lg"
+                  >
+                    <CheckCircle size={18} />
+                    승인
+                  </button>
+                  <button
+                    onClick={() => handleReject(user.id, user.name)}
+                    className="px-6 py-3 bg-red-600 rounded-xl font-bold hover:bg-red-500 transition-all flex items-center gap-2 shadow-lg"
+                  >
+                    <X size={18} />
+                    거부
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ===== 로그인 View =====
+const LoginView: React.FC<{ onLogin: (u: UserType) => void }> = ({ onLogin }) => {
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [formData, setFormData] = useState({ name: '', phone: '', password: '' });
+  const [error, setError] = useState('');
+
+  const handleAdminSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (formData.password === '3823!!') {
+      onLogin({ id: 'admin-account', name: '대표 관리자', phone: '', academy: 'Elite Hub', status: 'admin' });
+    } else {
+      setError('관리자 비밀번호가 올바르지 않습니다.');
+    }
+  };
+
+  const handleStudentSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    
+    try {
+      const q = query(collection(db, "users"), where("name", "==", formData.name), where("phone", "==", formData.phone));
+      const snap = await getDocs(q);
+      
+      if (!snap.empty) {
+        const userData = snap.docs[0].data();
+        
+        if (userData.status === 'pending') {
+          setError('가입 승인 대기 중입니다. 관리자의 승인을 기다려주세요.');
+          return;
+        }
+        
+        onLogin({ id: snap.docs[0].id, ...userData } as UserType);
+      } else {
+        setError('등록된 수강생 정보를 찾을 수 없습니다. 회원가입을 진행해주세요.');
+      }
+    } catch(err) {
+      setError('서버 연결에 실패했습니다. 잠시 후 다시 시도해주세요.');
+      console.error(err);
+    }
+  };
+
+  return (
+    <div className="max-w-md mx-auto py-20 px-6">
+      <div className="glass-card p-12 rounded-[3.5rem] shadow-2xl border-white/10">
+        <div className="flex bg-white/5 p-1.5 rounded-2xl mb-12 shadow-inner">
+          <button onClick={() => { setIsAdmin(false); setError(''); }} className={`flex-1 py-4 rounded-xl font-black transition-all ${!isAdmin ? 'bg-white text-indigo-950 shadow-xl' : 'text-gray-500'}`}>수강생</button>
+          <button onClick={() => { setIsAdmin(true); setError(''); }} className={`flex-1 py-4 rounded-xl font-black transition-all ${isAdmin ? 'bg-white text-indigo-950 shadow-xl' : 'text-gray-500'}`}>관리자</button>
+        </div>
+        
+        <div className="text-center mb-10">
+          <h2 className="text-4xl font-black mb-2 uppercase tracking-tight">{isAdmin ? 'Admin' : 'Student'}</h2>
+          <p className="text-gray-500 text-sm">{isAdmin ? '시스템 관리를 위해 로그인하세요.' : '등록된 정보를 입력하세요.'}</p>
+        </div>
+        
+        {error && (
+          <div className="mb-6 p-4 bg-red-500/20 border border-red-500/50 rounded-2xl text-red-400 text-sm font-bold">
+            {error}
+          </div>
+        )}
+        
+        <form className="space-y-5" onSubmit={isAdmin ? handleAdminSubmit : handleStudentSubmit}>
+          {!isAdmin ? (
+            <>
+              <input type="text" placeholder="성함" required className="w-full bg-white/5 border border-white/10 px-6 py-5 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold transition-all" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+              <input type="tel" placeholder="전화번호" required className="w-full bg-white/5 border border-white/10 px-6 py-5 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold transition-all" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
+              <button type="submit" className="w-full bg-blue-600 py-5 rounded-2xl font-black text-xl shadow-xl shadow-blue-600/20 active:scale-95 transition-all">입장하기</button>
+              
+              <div className="text-center pt-2">
+                <a href="#/signup" className="text-sm text-gray-400 hover:text-white transition-colors">
+                  계정이 없으신가요? <span className="text-blue-400 font-bold">회원가입</span>
+                </a>
+              </div>
+            </>
+          ) : (
+            <>
+              <input type="password" placeholder="관리자 비밀번호" required className="w-full bg-white/5 border border-white/10 px-6 py-5 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold transition-all" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} />
+              <button type="submit" className="w-full bg-indigo-600 py-5 rounded-2xl font-black text-xl shadow-xl shadow-indigo-600/20 active:scale-95 transition-all">관리자 접속</button>
+            </>
+          )}
+        </form>
+      </div>
+    </div>
+  );
+};
+
+
+  )}
+</form>
+export default App;
+
+  // ===== Part 3/3 시작 =====
+// Part 2에서 이어집니다
+
+// ===== ADMIN PANEL =====
 const AdminPanel: React.FC<{
   instructorInfo: InstructorInfo;
   brandName: string;
@@ -399,12 +737,12 @@ const AdminPanel: React.FC<{
   copyrightText: string;
   contents: CourseContent[];
   videos: ReviewVideo[];
+  resources: ResourceFile[];
   saveLocal: (k: string, d: any) => void;
   isDemoMode: boolean;
 }> = (props) => {
   const [activeTab, setActiveTab] = useState('branding');
   
-  // State management
   const [brandName, setBrandName] = useState(props.brandName);
   const [slogan, setSlogan] = useState(props.instructorSlogan);
   const [copyright, setCopyright] = useState(props.copyrightText);
@@ -412,75 +750,45 @@ const AdminPanel: React.FC<{
   const [instructor, setInstructor] = useState<InstructorInfo>(props.instructorInfo);
   const [newContent, setNewContent] = useState({ title: '', description: '', imageUrl: '' });
   const [newVideo, setNewVideo] = useState({ title: '', description: '', youtubeUrl: '' });
+  const [newResource, setNewResource] = useState({ name: '', description: '', fileData: '', fileType: '' });
   const [isGeneratingSlogan, setIsGeneratingSlogan] = useState(false);
 
   const heroFileRef = useRef<HTMLInputElement>(null);
   const instructorFileRef = useRef<HTMLInputElement>(null);
   const contentFileRef = useRef<HTMLInputElement>(null);
+  const resourceFileRef = useRef<HTMLInputElement>(null);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, callback: (base64: string) => void) => {
-    {activeTab === 'files' && (
-  <div className="glass-card p-10 rounded-[3rem] space-y-8 animate-fade-in-up border-white/10">
-    <h3 className="text-2xl font-black flex items-center gap-3">
-      <Upload className="text-blue-500" /> 학습 자료 업로드
-    </h3>
+    const file = e.target.files?.[0];
+    if (!file) return;
     
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-      <div className="space-y-6">
-        <div>
-          <label className="text-xs text-gray-500 font-black mb-2 block">파일명</label>
-          <input 
-            type="text"
-            placeholder="자료 제목을 입력하세요"
-            className="w-full bg-white/5 border border-white/10 px-6 py-4 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold"
-          />
-        </div>
-        
-        <div>
-          <label className="text-xs text-gray-500 font-black mb-2 block">설명</label>
-          <textarea 
-            placeholder="자료에 대한 설명을 입력하세요"
-            className="w-full bg-white/5 border border-white/10 px-6 py-4 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 h-32"
-          />
-        </div>
-      </div>
-      
-      <div className="space-y-4">
-        <label className="text-xs text-gray-500 font-black block">파일 선택</label>
-        <div className="border-2 border-dashed border-white/20 rounded-3xl p-8 text-center bg-white/5">
-          <input
-            type="file"
-            accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt"
-            className="hidden"
-            id="file-upload"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file && file.size > 10 * 1024 * 1024) {
-                alert('파일 크기는 10MB 이하여야 합니다.');
-                return;
-              }
-              // 파일 처리 로직
-            }}
-          />
-          <label htmlFor="file-upload" className="cursor-pointer">
-            <Upload size={48} className="mx-auto mb-4 text-gray-500" />
-            <p className="font-bold text-lg mb-2">파일을 선택하세요</p>
-            <p className="text-xs text-gray-500">
-              이미지, PDF, Word, Excel, PowerPoint, TXT<br/>
-              최대 10MB
-            </p>
-          </label>
-        </div>
-      </div>
-    </div>
+    const reader = new FileReader();
+    reader.onload = () => {
+      callback(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleResourceFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
     
-    <button 
-      className="w-full py-5 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-[2rem] font-black text-xl flex items-center justify-center gap-3 active:scale-95 transition-all"
-    >
-      <Upload size={24}/> 파일 업로드
-    </button>
-  </div>
-)}
+    if (file.size > 10 * 1024 * 1024) {
+      alert('파일 크기는 10MB 이하여야 합니다.');
+      return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = () => {
+      setNewResource({
+        ...newResource,
+        fileData: reader.result as string,
+        fileType: file.type
+      });
+    };
+    reader.readAsDataURL(file);
+  };
+
   const saveBranding = async () => {
     const data = { brandName, instructorSlogan: slogan, copyrightText: copyright, heroImageUrl: heroImg };
     try {
@@ -502,6 +810,7 @@ const AdminPanel: React.FC<{
       setSlogan(result);
     } catch (error) {
       console.error(error);
+      alert('슬로건 생성에 실패했습니다.');
     } finally {
       setIsGeneratingSlogan(false);
     }
@@ -549,6 +858,23 @@ const AdminPanel: React.FC<{
     }
   };
 
+  const addResource = async () => {
+    if (!newResource.name || !newResource.fileData) return alert("파일명과 파일을 모두 선택해주세요.");
+    try {
+      await addDoc(collection(db, "resources"), {
+        name: newResource.name,
+        description: newResource.description,
+        url: newResource.fileData,
+        fileType: newResource.fileType,
+        uploadedAt: new Date().toISOString()
+      });
+      setNewResource({ name: '', description: '', fileData: '', fileType: '' });
+      alert("자료가 등록되었습니다.");
+    } catch (e: any) {
+      alert(`등록 실패: ${e.message}`);
+    }
+  };
+
   const deleteItem = async (col: string, id: string) => {
     if (window.confirm("정말 삭제하시겠습니까?")) {
       try {
@@ -571,6 +897,10 @@ const AdminPanel: React.FC<{
             <p className="text-gray-500 text-sm font-medium">실시간 데이터 관리 도구</p>
           </div>
         </div>
+        <a href="#/admin/approval" className="px-6 py-3 bg-green-600 rounded-xl font-bold hover:bg-green-500 transition-all flex items-center gap-2">
+          <UserIcon size={20} />
+          회원 승인 관리
+        </a>
       </div>
 
       <div className="flex flex-wrap gap-3 mb-12 bg-white/5 p-2 rounded-[2rem] border border-white/5">
@@ -579,6 +909,7 @@ const AdminPanel: React.FC<{
           { id: 'instructor', label: '강사 프로필', icon: <UserIcon size={20} /> },
           { id: 'contents', label: '컨텐츠 업로드', icon: <BookOpen size={20} /> },
           { id: 'videos', label: '복습 영상', icon: <VideoIcon size={20} /> },
+          { id: 'resources', label: '학습 자료', icon: <Upload size={20} /> },
         ].map(tab => (
           <button 
             key={tab.id} 
@@ -615,7 +946,6 @@ const AdminPanel: React.FC<{
                 </div>
                 <div className="group">
                   <label className="text-xs text-gray-500 font-black uppercase tracking-widest mb-2 block">Footer Copyright</label>
-                  {/* Fixed copyright variable names to match local state in AdminPanel */}
                   <textarea className="w-full bg-white/5 border border-white/10 px-6 py-4 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 h-32" value={copyright} onChange={e => setCopyright(e.target.value)} />
                 </div>
               </div>
@@ -777,395 +1107,98 @@ const AdminPanel: React.FC<{
             </div>
           </div>
         )}
-      </div>
-    </div>
-  );
-};
-const SignUpView: React.FC = () => {
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    confirmPassword: '',
-    name: '',
-    phone: '',
-    academy: ''
-  });
-  const [message, setMessage] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (formData.password !== formData.confirmPassword) {
-      setMessage('비밀번호가 일치하지 않습니다.');
-      return;
-    }
-
-    if (formData.password.length < 6) {
-      setMessage('비밀번호는 6자 이상이어야 합니다.');
-      return;
-    }
-
-    setIsLoading(true);
-    
-    try {
-      // Firestore에 회원가입 신청 저장
-      await addDoc(collection(db, "pendingUsers"), {
-        email: formData.email,
-        name: formData.name,
-        phone: formData.phone,
-        academy: formData.academy || 'Elite Hub',
-        password: formData.password, // 실제 프로덕션에서는 해싱 필요
-        status: 'pending',
-        createdAt: new Date().toISOString()
-      });
-
-      setMessage('회원가입 신청이 완료되었습니다. 관리자 승인을 기다려주세요.');
-      setFormData({
-        email: '',
-        password: '',
-        confirmPassword: '',
-        name: '',
-        phone: '',
-        academy: ''
-      });
-    } catch (error: any) {
-      console.error(error);
-      setMessage(`회원가입 신청 중 오류가 발생했습니다: ${error.message}`);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  return (
-    <div className="max-w-md mx-auto py-20 px-6">
-      <div className="glass-card p-12 rounded-[3.5rem] shadow-2xl border-white/10">
-        <div className="text-center mb-10">
-          <h2 className="text-4xl font-black mb-2 uppercase tracking-tight">회원가입</h2>
-          <p className="text-gray-500 text-sm">학생 정보를 입력하여 가입을 신청하세요.</p>
-        </div>
-        
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <input
-              name="name"
-              type="text"
-              placeholder="이름"
-              value={formData.name}
-              onChange={handleChange}
-              required
-              className="w-full bg-white/5 border border-white/10 px-6 py-4 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold transition-all"
-            />
-          </div>
-
-          <div>
-            <input
-              name="phone"
-              type="tel"
-              placeholder="전화번호"
-              value={formData.phone}
-              onChange={handleChange}
-              required
-              className="w-full bg-white/5 border border-white/10 px-6 py-4 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold transition-all"
-            />
-          </div>
-
-          <div>
-            <input
-              name="email"
-              type="email"
-              placeholder="이메일"
-              value={formData.email}
-              onChange={handleChange}
-              required
-              className="w-full bg-white/5 border border-white/10 px-6 py-4 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold transition-all"
-            />
-          </div>
-
-          <div>
-            <input
-              name="academy"
-              type="text"
-              placeholder="학원명 (선택)"
-              value={formData.academy}
-              onChange={handleChange}
-              className="w-full bg-white/5 border border-white/10 px-6 py-4 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold transition-all"
-            />
-          </div>
-
-          <div>
-            <input
-              name="password"
-              type="password"
-              placeholder="비밀번호 (6자 이상)"
-              value={formData.password}
-              onChange={handleChange}
-              required
-              className="w-full bg-white/5 border border-white/10 px-6 py-4 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold transition-all"
-            />
-          </div>
-
-          <div>
-            <input
-              name="confirmPassword"
-              type="password"
-              placeholder="비밀번호 확인"
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              required
-              className="w-full bg-white/5 border border-white/10 px-6 py-4 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold transition-all"
-            />
-          </div>
-
-          {message && (
-            <div className={`p-4 rounded-2xl text-sm font-bold ${message.includes('완료') ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
-              {message}
-            </div>
-          )}
-
-          <button 
-            type="submit" 
-            disabled={isLoading}
-            className="w-full bg-blue-600 py-5 rounded-2xl font-black text-xl shadow-xl shadow-blue-600/20 active:scale-95 transition-all disabled:opacity-50"
-          >
-            {isLoading ? '처리 중...' : '회원가입 신청'}
-          </button>
-
-          <div className="text-center pt-4">
-            <a href="#/login" className="text-sm text-gray-400 hover:text-white transition-colors">
-              이미 계정이 있으신가요? <span className="text-blue-400 font-bold">로그인</span>
-            </a>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-};
-
-const AdminApprovalView: React.FC = () => {
-  const [pendingUsers, setPendingUsers] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, "pendingUsers"), (snapshot) => {
-      const users = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setPendingUsers(users);
-      setIsLoading(false);
-    }, (error) => {
-      console.error("승인 대기 목록 불러오기 실패:", error);
-      setIsLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, []);
-
-  const handleApprove = async (userId: string, userData: any) => {
-    try {
-      // users 컬렉션에 추가
-      await addDoc(collection(db, "users"), {
-        name: userData.name,
-        phone: userData.phone,
-        email: userData.email,
-        academy: userData.academy || 'Elite Hub',
-        status: 'approved',
-        approvedAt: new Date().toISOString()
-      });
-
-      // pendingUsers에서 삭제
-      await deleteDoc(doc(db, "pendingUsers", userId));
-
-      alert(`${userData.name}님이 승인되었습니다.`);
-    } catch (error: any) {
-      console.error("승인 처리 실패:", error);
-      alert(`승인 처리 중 오류가 발생했습니다: ${error.message}`);
-    }
-  };
-
-  const handleReject = async (userId: string, userName: string) => {
-    if (window.confirm(`${userName}님의 가입 신청을 거부하시겠습니까?`)) {
-      try {
-        await deleteDoc(doc(db, "pendingUsers", userId));
-        alert("거부되었습니다.");
-      } catch (error: any) {
-        console.error("거부 처리 실패:", error);
-        alert(`거부 처리 중 오류가 발생했습니다: ${error.message}`);
-      }
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <div className="max-w-6xl mx-auto px-6 py-12">
-        <div className="glass-card p-10 rounded-[3rem]">
-          <p className="text-center text-gray-400">로딩 중...</p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="max-w-6xl mx-auto px-6 py-12">
-      <div className="glass-card p-10 rounded-[3rem] space-y-8">
-        <div className="flex items-center justify-between">
-          <h2 className="text-3xl font-black flex items-center gap-3">
-            <UserIcon className="text-blue-500" size={32} />
-            회원 가입 승인 관리
-          </h2>
-          <div className="px-4 py-2 bg-blue-500/20 rounded-xl">
-            <span className="text-sm font-bold text-blue-400">
-              대기 중: {pendingUsers.filter(u => u.status === 'pending').length}명
-            </span>
-          </div>
-        </div>
-
-        {pendingUsers.length === 0 ? (
-          <div className="text-center py-24">
-            <CheckCircle size={64} className="mx-auto mb-4 text-gray-600" />
-            <p className="text-gray-500 text-lg">승인 대기 중인 회원이 없습니다.</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {pendingUsers.map((user) => (
-              <div 
-                key={user.id} 
-                className="bg-white/5 border border-white/10 rounded-2xl p-6 flex items-center justify-between hover:bg-white/10 transition-all"
-              >
-                <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4">
+        {activeTab === 'resources' && (
+          <div className="space-y-10 animate-fade-in-up">
+            <div className="glass-card p-10 rounded-[3rem] space-y-8 border-white/10">
+              <h3 className="text-2xl font-black flex items-center gap-3">
+                <Upload className="text-blue-500" /> 학습 자료 업로드
+              </h3>
+              
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="space-y-6">
                   <div>
-                    <p className="text-xs text-gray-500 mb-1">이름</p>
-                    <p className="font-bold text-lg">{user.name}</p>
+                    <label className="text-xs text-gray-500 font-black mb-2 block">파일명</label>
+                    <input 
+                      type="text"
+                      placeholder="자료 제목을 입력하세요"
+                      value={newResource.name}
+                      onChange={e => setNewResource({...newResource, name: e.target.value})}
+                      className="w-full bg-white/5 border border-white/10 px-6 py-4 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold"
+                    />
                   </div>
+                  
                   <div>
-                    <p className="text-xs text-gray-500 mb-1">전화번호</p>
-                    <p className="font-mono text-sm text-gray-300">{user.phone}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 mb-1">이메일</p>
-                    <p className="text-sm text-gray-300">{user.email}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 mb-1">신청일</p>
-                    <p className="text-sm text-gray-300">
-                      {new Date(user.createdAt).toLocaleDateString('ko-KR')}
-                    </p>
+                    <label className="text-xs text-gray-500 font-black mb-2 block">설명</label>
+                    <textarea 
+                      placeholder="자료에 대한 설명을 입력하세요"
+                      value={newResource.description}
+                      onChange={e => setNewResource({...newResource, description: e.target.value})}
+                      className="w-full bg-white/5 border border-white/10 px-6 py-4 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 h-32"
+                    />
                   </div>
                 </div>
                 
-                <div className="flex gap-3 ml-6">
-                  <button
-                    onClick={() => handleApprove(user.id, user)}
-                    className="px-6 py-3 bg-green-600 rounded-xl font-bold hover:bg-green-500 transition-all flex items-center gap-2 shadow-lg"
-                  >
-                    <CheckCircle size={18} />
-                    승인
-                  </button>
-                  <button
-                    onClick={() => handleReject(user.id, user.name)}
-                    className="px-6 py-3 bg-red-600 rounded-xl font-bold hover:bg-red-500 transition-all flex items-center gap-2 shadow-lg"
-                  >
-                    <X size={18} />
-                    거부
-                  </button>
+                <div className="space-y-4">
+                  <label className="text-xs text-gray-500 font-black block">파일 선택</label>
+                  <div className="border-2 border-dashed border-white/20 rounded-3xl p-8 text-center bg-white/5">
+                    <input
+                      type="file"
+                      ref={resourceFileRef}
+                      accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt"
+                      className="hidden"
+                      onChange={handleResourceFileUpload}
+                    />
+                    <button onClick={() => resourceFileRef.current?.click()} className="w-full">
+                      <Upload size={48} className="mx-auto mb-4 text-gray-500" />
+                      <p className="font-bold text-lg mb-2">
+                        {newResource.fileData ? '✓ 파일 선택됨' : '파일을 선택하세요'}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        이미지, PDF, Word, Excel, PowerPoint, TXT<br/>
+                        최대 10MB
+                      </p>
+                    </button>
+                  </div>
                 </div>
               </div>
-            ))}
+              
+              <button 
+                onClick={addResource}
+                className="w-full py-5 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-[2rem] font-black text-xl flex items-center justify-center gap-3 active:scale-95 transition-all"
+              >
+                <Upload size={24}/> 파일 업로드
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4">
+              {props.resources.map(r => (
+                <div key={r.id} className="glass-card p-6 rounded-2xl flex justify-between items-center group">
+                  <div className="flex gap-5 items-center">
+                    <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center text-blue-400 group-hover:bg-blue-500 group-hover:text-white
+                    {props.resources.map(r => (
+                <div key={r.id} className="glass-card p-6 rounded-2xl flex justify-between items-center group">
+                  <div className="flex gap-5 items-center">
+                    <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center text-blue-400 group-hover:bg-blue-500 group-hover:text-white transition-colors">
+                      <BookOpen size={24} />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-lg">{r.name}</h4>
+                      <p className="text-sm text-gray-400">{r.description}</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <a href={r.url} download className="px-6 py-2 bg-blue-600 rounded-xl font-bold hover:bg-blue-500 transition-colors shadow-lg">다운로드</a>
+                    <button onClick={() => deleteItem('resources', r.id)} className="p-2 text-red-400 hover:bg-red-400/10 rounded-xl transition-all"><Trash2 size={20}/></button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>
     </div>
   );
 };
-// --- LOGIN VIEW ---
 
-const LoginView: React.FC<{ onLogin: (u: UserType) => void }> = ({ onLogin }) => {
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [formData, setFormData] = useState({ name: '', phone: '', password: '' });
-
-  const handleAdminSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (formData.password === '3823!!') {
-      onLogin({ id: 'admin-account', name: '대표 관리자', phone: '', academy: 'Elite Hub', status: 'admin' });
-    } else {
-      alert('관리자 비밀번호가 올바르지 않습니다.');
-    }
-  };
-
-  const handleStudentSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const q = query(collection(db, "users"), where("name", "==", formData.name), where("phone", "==", formData.phone));
-      const snap = await getDocs(q);
-      if (!snap.empty) {
-        const userData = snap.docs[0].data();
-        onLogin({ id: snap.docs[0].id, ...userData } as UserType);
-      } else {
-        alert('등록된 수강생 정보를 찾을 수 없습니다.');
-      }
-    } catch(err) {
-      alert('서버 연결에 실패했습니다. (보안 규칙 또는 네트워크 확인)');
-    }
-  };
-
-  return (
-    <div className="max-w-md mx-auto py-20 px-6">
-      <div className="glass-card p-12 rounded-[3.5rem] shadow-2xl border-white/10">
-        <div className="flex bg-white/5 p-1.5 rounded-2xl mb-12 shadow-inner">
-          <button onClick={() => setIsAdmin(false)} className={`flex-1 py-4 rounded-xl font-black transition-all ${!isAdmin ? 'bg-white text-indigo-950 shadow-xl' : 'text-gray-500'}`}>수강생</button>
-          <button onClick={() => setIsAdmin(true)} className={`flex-1 py-4 rounded-xl font-black transition-all ${isAdmin ? 'bg-white text-indigo-950 shadow-xl' : 'text-gray-500'}`}>관리자</button>
-        </div>
-        
-        <div className="text-center mb-10">
-          <h2 className="text-4xl font-black mb-2 uppercase tracking-tight">{isAdmin ? 'Admin' : 'Student'}</h2>
-          <p className="text-gray-500 text-sm">{isAdmin ? '시스템 관리를 위해 로그인하세요.' : '등록된 정보를 입력하세요.'}</p>
-        </div>
-        
-        <form className="space-y-5" onSubmit={isAdmin ? handleAdminSubmit : handleStudentSubmit}>
-          {!isAdmin ? (
-            <>
-              <input type="text" placeholder="성함" required className="w-full bg-white/5 border border-white/10 px-6 py-5 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold transition-all" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
-              <input type="tel" placeholder="전화번호" required className="w-full bg-white/5 border border-white/10 px-6 py-5 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold transition-all" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
-              <button type="submit" className="w-full bg-blue-600 py-5 rounded-2xl font-black text-xl shadow-xl shadow-blue-600/20 active:scale-95 transition-all">입장하기</button>
-            </>
-          ) : (
-            <>
-              <input type="password" placeholder="관리자 비밀번호" required className="w-full bg-white/5 border border-white/10 px-6 py-5 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold transition-all" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} />
-              <button type="submit" className="w-full bg-indigo-600 py-5 rounded-2xl font-black text-xl shadow-xl shadow-indigo-600/20 active:scale-95 transition-all">관리자 접속</button>
-            </>
-          )}
-        </form>
-      </div>
-    </div>
-  );
-};
-<form className="space-y-5" onSubmit={isAdmin ? handleAdminSubmit : handleStudentSubmit}>
-  {!isAdmin ? (
-    <>
-      <input type="text" placeholder="성함" required className="w-full bg-white/5 border border-white/10 px-6 py-5 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold transition-all" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
-      <input type="tel" placeholder="전화번호" required className="w-full bg-white/5 border border-white/10 px-6 py-5 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold transition-all" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
-      <button type="submit" className="w-full bg-blue-600 py-5 rounded-2xl font-black text-xl shadow-xl shadow-blue-600/20 active:scale-95 transition-all">입장하기</button>
-      
-      {/* 회원가입 버튼 추가 */}
-      <div className="text-center pt-2">
-        <a href="#/signup" className="text-sm text-gray-400 hover:text-white transition-colors">
-          계정이 없으신가요? <span className="text-blue-400 font-bold">회원가입</span>
-        </a>
-      </div>
-    </>
-  ) : (
-    <>
-      <input type="password" placeholder="관리자 비밀번호" required className="w-full bg-white/5 border border-white/10 px-6 py-5 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold transition-all" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} />
-      <button type="submit" className="w-full bg-indigo-600 py-5 rounded-2xl font-black text-xl shadow-xl shadow-indigo-600/20 active:scale-95 transition-all">관리자 접속</button>
-    </>
-  )}
-</form>
 export default App;
