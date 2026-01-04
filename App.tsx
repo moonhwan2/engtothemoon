@@ -720,14 +720,9 @@ const LoginView: React.FC<{ onLogin: (u: UserType) => void }> = ({ onLogin }) =>
   );
 };
 
-
-  )}
-</form>
 export default App;
 
-  // ===== Part 3/3 시작 =====
-// Part 2에서 이어집니다
-
+ 
 // ===== ADMIN PANEL =====
 const AdminPanel: React.FC<{
   instructorInfo: InstructorInfo;
