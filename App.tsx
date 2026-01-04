@@ -722,7 +722,6 @@ const LoginView: React.FC<{ onLogin: (u: UserType) => void }> = ({ onLogin }) =>
 
 export default App;
 
- 
 // ===== ADMIN PANEL =====
 const AdminPanel: React.FC<{
   instructorInfo: InstructorInfo;
