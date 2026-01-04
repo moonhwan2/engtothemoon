@@ -202,7 +202,7 @@ const App: React.FC = () => {
           currentUser={currentUser} 
           onLogout={handleLogout} 
           canAccess={canAccess}
-          children={null}
+          
           copyrightText={copyrightText}
         />
         
