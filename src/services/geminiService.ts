@@ -1,8 +1,8 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 
 // 환경 변수 또는 직접 입력 (환경 변수 권장)
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || "AIzaSyBplv-HrQskzYPVityQXHnH3nBIver-naw";
-const genAI = new GoogleGenerativeAI(API_KEY);
+const genAI = new GoogleGenAI({ apiKey: API_KEY });
 
 // 슬로건 생성 함수 (관리자 페이지에서 사용)
 export async function generateSlogan(keywords: string): Promise<string> {

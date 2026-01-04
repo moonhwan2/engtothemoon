@@ -49,9 +49,9 @@ import {
 } from './types';
 
 // Components
-import { Navbar, Footer } from './components/Layout';
+import { Navbar, Footer } from './Layout';
 // Import Gemini slogan generation service
-import { generateSlogan } from './services/geminiService';
+import { generateSlogan } from './src/services/geminiService';
 
 const App: React.FC = () => {
   // --- STATE ---

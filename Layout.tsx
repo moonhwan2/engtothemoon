@@ -2,7 +2,7 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { LogOut, Settings, User as UserIcon, BookOpen, FileText, Video, MessageSquare } from 'lucide-react';
-import { User } from '../types';
+import { User } from './types';
 
 interface LayoutProps {
   children: React.ReactNode;
