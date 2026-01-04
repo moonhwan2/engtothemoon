@@ -28,7 +28,7 @@ jobs:
           node-version: 18
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install   # 🔥 여기만 중요
 
       - name: Build
         run: npm run build
@@ -50,3 +50,4 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
