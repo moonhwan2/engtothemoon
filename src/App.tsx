@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+const [loading, setLoading] = useState(true);
 import { 
   HashRouter as Router, 
   Routes, 
