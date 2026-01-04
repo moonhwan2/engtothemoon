@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-  HashRouter as Router, 
+  BrowserRouter as Router, 
   Routes, 
   Route, 
   Link
@@ -1011,7 +1011,7 @@ const App: React.FC = () => {
   const canAccess = currentUser?.status === 'approved' || currentUser?.status === 'admin';
 
   return (
-    <Router>
+    <Router basename="/engtothemoon">
       <div className="min-h-screen">
         <nav className="fixed top-0 left-0 right-0 z-50 glass shadow-2xl">
           <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
