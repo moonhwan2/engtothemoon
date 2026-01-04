@@ -48,7 +48,7 @@ import {
 } from './types';
 
 // Components
-import { Navbar, Footer } from './Layout';
+import { Navbar, Footer } from './Component/LayoutLayout';
 import { generateSlogan } from './src/services/geminiService';
 
 const App: React.FC = () => {
