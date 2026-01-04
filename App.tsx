@@ -419,15 +419,68 @@ const AdminPanel: React.FC<{
   const contentFileRef = useRef<HTMLInputElement>(null);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, callback: (base64: string) => void) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 2 * 1024 * 1024) return alert("파일 크기는 2MB 이하여야 합니다.");
-      const reader = new FileReader();
-      reader.onloadend = () => callback(reader.result as string);
-      reader.readAsDataURL(file);
-    }
-  };
-
+    {activeTab === 'files' && (
+  <div className="glass-card p-10 rounded-[3rem] space-y-8 animate-fade-in-up border-white/10">
+    <h3 className="text-2xl font-black flex items-center gap-3">
+      <Upload className="text-blue-500" /> 학습 자료 업로드
+    </h3>
+    
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="space-y-6">
+        <div>
+          <label className="text-xs text-gray-500 font-black mb-2 block">파일명</label>
+          <input 
+            type="text"
+            placeholder="자료 제목을 입력하세요"
+            className="w-full bg-white/5 border border-white/10 px-6 py-4 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold"
+          />
+        </div>
+        
+        <div>
+          <label className="text-xs text-gray-500 font-black mb-2 block">설명</label>
+          <textarea 
+            placeholder="자료에 대한 설명을 입력하세요"
+            className="w-full bg-white/5 border border-white/10 px-6 py-4 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 h-32"
+          />
+        </div>
+      </div>
+      
+      <div className="space-y-4">
+        <label className="text-xs text-gray-500 font-black block">파일 선택</label>
+        <div className="border-2 border-dashed border-white/20 rounded-3xl p-8 text-center bg-white/5">
+          <input
+            type="file"
+            accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt"
+            className="hidden"
+            id="file-upload"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file && file.size > 10 * 1024 * 1024) {
+                alert('파일 크기는 10MB 이하여야 합니다.');
+                return;
+              }
+              // 파일 처리 로직
+            }}
+          />
+          <label htmlFor="file-upload" className="cursor-pointer">
+            <Upload size={48} className="mx-auto mb-4 text-gray-500" />
+            <p className="font-bold text-lg mb-2">파일을 선택하세요</p>
+            <p className="text-xs text-gray-500">
+              이미지, PDF, Word, Excel, PowerPoint, TXT<br/>
+              최대 10MB
+            </p>
+          </label>
+        </div>
+      </div>
+    </div>
+    
+    <button 
+      className="w-full py-5 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-[2rem] font-black text-xl flex items-center justify-center gap-3 active:scale-95 transition-all"
+    >
+      <Upload size={24}/> 파일 업로드
+    </button>
+  </div>
+)}
   const saveBranding = async () => {
     const data = { brandName, instructorSlogan: slogan, copyrightText: copyright, heroImageUrl: heroImg };
     try {
@@ -895,6 +948,143 @@ const SignUpView: React.FC = () => {
     </div>
   );
 };
+
+const AdminApprovalView: React.FC = () => {
+  const [pendingUsers, setPendingUsers] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = onSnapshot(collection(db, "pendingUsers"), (snapshot) => {
+      const users = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setPendingUsers(users);
+      setIsLoading(false);
+    }, (error) => {
+      console.error("승인 대기 목록 불러오기 실패:", error);
+      setIsLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const handleApprove = async (userId: string, userData: any) => {
+    try {
+      // users 컬렉션에 추가
+      await addDoc(collection(db, "users"), {
+        name: userData.name,
+        phone: userData.phone,
+        email: userData.email,
+        academy: userData.academy || 'Elite Hub',
+        status: 'approved',
+        approvedAt: new Date().toISOString()
+      });
+
+      // pendingUsers에서 삭제
+      await deleteDoc(doc(db, "pendingUsers", userId));
+
+      alert(`${userData.name}님이 승인되었습니다.`);
+    } catch (error: any) {
+      console.error("승인 처리 실패:", error);
+      alert(`승인 처리 중 오류가 발생했습니다: ${error.message}`);
+    }
+  };
+
+  const handleReject = async (userId: string, userName: string) => {
+    if (window.confirm(`${userName}님의 가입 신청을 거부하시겠습니까?`)) {
+      try {
+        await deleteDoc(doc(db, "pendingUsers", userId));
+        alert("거부되었습니다.");
+      } catch (error: any) {
+        console.error("거부 처리 실패:", error);
+        alert(`거부 처리 중 오류가 발생했습니다: ${error.message}`);
+      }
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="max-w-6xl mx-auto px-6 py-12">
+        <div className="glass-card p-10 rounded-[3rem]">
+          <p className="text-center text-gray-400">로딩 중...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-6xl mx-auto px-6 py-12">
+      <div className="glass-card p-10 rounded-[3rem] space-y-8">
+        <div className="flex items-center justify-between">
+          <h2 className="text-3xl font-black flex items-center gap-3">
+            <UserIcon className="text-blue-500" size={32} />
+            회원 가입 승인 관리
+          </h2>
+          <div className="px-4 py-2 bg-blue-500/20 rounded-xl">
+            <span className="text-sm font-bold text-blue-400">
+              대기 중: {pendingUsers.filter(u => u.status === 'pending').length}명
+            </span>
+          </div>
+        </div>
+
+        {pendingUsers.length === 0 ? (
+          <div className="text-center py-24">
+            <CheckCircle size={64} className="mx-auto mb-4 text-gray-600" />
+            <p className="text-gray-500 text-lg">승인 대기 중인 회원이 없습니다.</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {pendingUsers.map((user) => (
+              <div 
+                key={user.id} 
+                className="bg-white/5 border border-white/10 rounded-2xl p-6 flex items-center justify-between hover:bg-white/10 transition-all"
+              >
+                <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">이름</p>
+                    <p className="font-bold text-lg">{user.name}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">전화번호</p>
+                    <p className="font-mono text-sm text-gray-300">{user.phone}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">이메일</p>
+                    <p className="text-sm text-gray-300">{user.email}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">신청일</p>
+                    <p className="text-sm text-gray-300">
+                      {new Date(user.createdAt).toLocaleDateString('ko-KR')}
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="flex gap-3 ml-6">
+                  <button
+                    onClick={() => handleApprove(user.id, user)}
+                    className="px-6 py-3 bg-green-600 rounded-xl font-bold hover:bg-green-500 transition-all flex items-center gap-2 shadow-lg"
+                  >
+                    <CheckCircle size={18} />
+                    승인
+                  </button>
+                  <button
+                    onClick={() => handleReject(user.id, user.name)}
+                    className="px-6 py-3 bg-red-600 rounded-xl font-bold hover:bg-red-500 transition-all flex items-center gap-2 shadow-lg"
+                  >
+                    <X size={18} />
+                    거부
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 // --- LOGIN VIEW ---
 
 const LoginView: React.FC<{ onLogin: (u: UserType) => void }> = ({ onLogin }) => {
@@ -957,5 +1147,25 @@ const LoginView: React.FC<{ onLogin: (u: UserType) => void }> = ({ onLogin }) =>
     </div>
   );
 };
-
+<form className="space-y-5" onSubmit={isAdmin ? handleAdminSubmit : handleStudentSubmit}>
+  {!isAdmin ? (
+    <>
+      <input type="text" placeholder="성함" required className="w-full bg-white/5 border border-white/10 px-6 py-5 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold transition-all" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+      <input type="tel" placeholder="전화번호" required className="w-full bg-white/5 border border-white/10 px-6 py-5 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold transition-all" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
+      <button type="submit" className="w-full bg-blue-600 py-5 rounded-2xl font-black text-xl shadow-xl shadow-blue-600/20 active:scale-95 transition-all">입장하기</button>
+      
+      {/* 회원가입 버튼 추가 */}
+      <div className="text-center pt-2">
+        <a href="#/signup" className="text-sm text-gray-400 hover:text-white transition-colors">
+          계정이 없으신가요? <span className="text-blue-400 font-bold">회원가입</span>
+        </a>
+      </div>
+    </>
+  ) : (
+    <>
+      <input type="password" placeholder="관리자 비밀번호" required className="w-full bg-white/5 border border-white/10 px-6 py-5 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold transition-all" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} />
+      <button type="submit" className="w-full bg-indigo-600 py-5 rounded-2xl font-black text-xl shadow-xl shadow-indigo-600/20 active:scale-95 transition-all">관리자 접속</button>
+    </>
+  )}
+</form>
 export default App;
