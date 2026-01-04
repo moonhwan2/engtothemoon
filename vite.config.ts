@@ -4,19 +4,25 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
 
-  // GitHub Pages 하위 경로 배포용
+  // GitHub Pages 하위 repo 배포 경로
   // https://moonhwan2.github.io/engtothemoon/
   base: '/engtothemoon/',
 
-  // 빌드 결과물 폴더 (기본값이지만 명시)
+  // 빌드 결과물 설정
   build: {
     outDir: 'dist',
     assetsDir: 'assets',
+    emptyOutDir: true,
   },
 
-  // 개발 서버 옵션 (배포와 무관, 안정성용)
+  // 개발 서버 (배포에는 영향 없음)
   server: {
     port: 5173,
     open: true,
+  },
+
+  // 미리보기 서버 (npm run preview)
+  preview: {
+    port: 4173,
   },
 })
