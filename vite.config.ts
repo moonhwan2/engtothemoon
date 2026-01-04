@@ -8,6 +8,11 @@ export default defineConfig({
     host: '0.0.0.0',
   },
   plugins: [react()],
+  base: '/engtothemoon/', // ← 이 부분 중요!
+  build: {
+    outDir: 'dist',
+    assetsDir: 'assets',
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, '.'),
