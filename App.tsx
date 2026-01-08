@@ -34,10 +34,7 @@ import {
   CheckCircle,
   X,
   AlertCircle,
-  Sparkles,
-  Edit,
-  ChevronUp,
-  ChevronDown
+  Sparkles
 } from 'lucide-react';
 
 // Types
@@ -51,8 +48,8 @@ import {
 } from './types';
 
 // Components
-import { Navbar, Footer } from './components/Layout';
-import { generateSlogan } from './services/geminiService';
+import { Navbar, Footer } from './Component/LayoutLayout';
+import { generateSlogan } from './src/services/geminiService';
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<UserType | null>(null);
@@ -389,7 +386,6 @@ const SignUpView: React.FC = () => {
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
-    password: '',
     academy: ''
   });
   const [message, setMessage] = useState('');
@@ -405,8 +401,8 @@ const SignUpView: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.phone || !formData.password) {
-      setMessage('이름, 비밀번호, 전화번호를 모두 입력해주세요.');
+    if (!formData.name || !formData.phone) {
+      setMessage('이름과 전화번호를 모두 입력해주세요.');
       return;
     }
 
@@ -416,7 +412,6 @@ const SignUpView: React.FC = () => {
       await addDoc(collection(db, "pendingUsers"), {
         name: formData.name,
         phone: formData.phone,
-        password: formData.password,
         academy: formData.academy || 'Elite Hub',
         status: 'pending',
         createdAt: new Date().toISOString()
@@ -426,7 +421,6 @@ const SignUpView: React.FC = () => {
       setFormData({
         name: '',
         phone: '',
-        password: '',
         academy: ''
       });
     } catch (error: any) {
@@ -464,18 +458,6 @@ const SignUpView: React.FC = () => {
               type="tel"
               placeholder="전화번호 (예: 010-1234-5678)"
               value={formData.phone}
-              onChange={handleChange}
-              required
-              className="w-full bg-white/5 border border-white/10 px-6 py-4 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold transition-all"
-            />
-          </div>
-
-          <div>
-            <input
-              name="password"
-              type="password"
-              placeholder="비밀번호"
-              value={formData.password}
               onChange={handleChange}
               required
               className="w-full bg-white/5 border border-white/10 px-6 py-4 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold transition-all"
@@ -544,7 +526,6 @@ const AdminApprovalView: React.FC = () => {
       await addDoc(collection(db, "users"), {
         name: userData.name,
         phone: userData.phone,
-        password: userData.password,
         academy: userData.academy || 'Elite Hub',
         status: 'approved',
         approvedAt: new Date().toISOString()
@@ -618,10 +599,6 @@ const AdminApprovalView: React.FC = () => {
                     <p className="font-mono text-sm text-gray-300">{user.phone}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500 mb-1">비밀번호</p>
-                    <p className="font-mono text-sm text-gray-300">{user.password ? '●●●●●●' : '미설정'}</p>
-                  </div>
-                  <div>
                     <p className="text-xs text-gray-500 mb-1">수강반</p>
                     <p className="text-sm text-gray-300">{user.academy}</p>
                   </div>
@@ -689,11 +666,6 @@ const LoginView: React.FC<{ onLogin: (u: UserType) => void }> = ({ onLogin }) =>
           return;
         }
         
-        if (userData.password && userData.password !== formData.password) {
-          setError('비밀번호가 일치하지 않습니다.');
-          return;
-        }
-        
         onLogin({ id: snap.docs[0].id, ...userData } as UserType);
       } else {
         setError('등록된 수강생 정보를 찾을 수 없습니다. 회원가입을 진행해주세요.');
@@ -728,7 +700,6 @@ const LoginView: React.FC<{ onLogin: (u: UserType) => void }> = ({ onLogin }) =>
             <>
               <input type="text" placeholder="성함" required className="w-full bg-white/5 border border-white/10 px-6 py-5 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold transition-all" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
               <input type="tel" placeholder="전화번호" required className="w-full bg-white/5 border border-white/10 px-6 py-5 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold transition-all" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
-              <input type="password" placeholder="비밀번호" required className="w-full bg-white/5 border border-white/10 px-6 py-5 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold transition-all" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} />
               <button type="submit" className="w-full bg-blue-600 py-5 rounded-2xl font-black text-xl shadow-xl shadow-blue-600/20 active:scale-95 transition-all">입장하기</button>
               
               <div className="text-center pt-2">
@@ -748,6 +719,8 @@ const LoginView: React.FC<{ onLogin: (u: UserType) => void }> = ({ onLogin }) =>
     </div>
   );
 };
+
+export default App;
 
 // ===== ADMIN PANEL =====
 const AdminPanel: React.FC<{
@@ -773,8 +746,6 @@ const AdminPanel: React.FC<{
   const [newVideo, setNewVideo] = useState({ title: '', description: '', youtubeUrl: '' });
   const [newResource, setNewResource] = useState({ name: '', description: '', fileData: '', fileType: '' });
   const [isGeneratingSlogan, setIsGeneratingSlogan] = useState(false);
-  const [editingVideoId, setEditingVideoId] = useState<string | null>(null);
-  const [editingVideoData, setEditingVideoData] = useState({ title: '', description: '' });
 
   const heroFileRef = useRef<HTMLInputElement>(null);
   const instructorFileRef = useRef<HTMLInputElement>(null);
@@ -905,46 +876,6 @@ const AdminPanel: React.FC<{
       } catch (e: any) {
         alert(`삭제 실패: ${e.message}`);
       }
-    }
-  };
-
-  const updateVideo = async (id: string) => {
-    if (!editingVideoData.title) {
-      alert("제목을 입력해주세요.");
-      return;
-    }
-    try {
-      await updateDoc(doc(db, "videos", id), {
-        title: editingVideoData.title,
-        description: editingVideoData.description
-      });
-      setEditingVideoId(null);
-      alert("영상 정보가 수정되었습니다.");
-    } catch (e: any) {
-      alert(`수정 실패: ${e.message}`);
-    }
-  };
-
-  const moveVideo = async (id: string, direction: 'up' | 'down') => {
-    const currentIndex = props.videos.findIndex(v => v.id === id);
-    if (currentIndex === -1) return;
-    
-    const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
-    if (newIndex < 0 || newIndex >= props.videos.length) return;
-
-    try {
-      const batch = props.videos.map((video, index) => {
-        let newOrder = index;
-        if (index === currentIndex) newOrder = newIndex;
-        else if (index === newIndex) newOrder = currentIndex;
-        
-        return updateDoc(doc(db, "videos", video.id), { order: newOrder });
-      });
-      
-      await Promise.all(batch);
-      alert("순서가 변경되었습니다.");
-    } catch (e: any) {
-      alert(`순서 변경 실패: ${e.message}`);
     }
   };
 
@@ -1154,93 +1085,17 @@ const AdminPanel: React.FC<{
               <button onClick={addVideo} className="w-full py-5 bg-red-600 rounded-[2rem] font-black text-xl flex items-center justify-center gap-3 active:scale-95 shadow-xl shadow-red-600/20 transition-all"><Plus size={24}/> 영상 등록하기</button>
             </div>
 
-            <div className="space-y-6">
-              {props.videos.map((v, idx) => (
-                <div key={v.id} className="glass-card p-6 rounded-[2.5rem] group relative">
-                  {editingVideoId === v.id ? (
-                    <div className="space-y-4">
-                      <div className="flex gap-4 items-start">
-                        <div className="w-40 aspect-video bg-black rounded-2xl overflow-hidden shadow-lg flex-shrink-0">
-                          <img src={`https://img.youtube.com/vi/${v.youtubeId}/mqdefault.jpg`} className="w-full h-full object-cover" alt="thumb" />
-                        </div>
-                        <div className="flex-1 space-y-3">
-                          <input 
-                            className="w-full bg-white/5 border border-white/10 px-4 py-3 rounded-xl font-bold outline-none focus:ring-2 focus:ring-red-500" 
-                            value={editingVideoData.title}
-                            onChange={e => setEditingVideoData({...editingVideoData, title: e.target.value})}
-                            placeholder="영상 제목"
-                          />
-                          <textarea 
-                            className="w-full bg-white/5 border border-white/10 px-4 py-3 rounded-xl outline-none focus:ring-2 focus:ring-red-500 h-24 text-sm"
-                            value={editingVideoData.description}
-                            onChange={e => setEditingVideoData({...editingVideoData, description: e.target.value})}
-                            placeholder="영상 설명"
-                          />
-                        </div>
-                      </div>
-                      <div className="flex gap-3 justify-end">
-                        <button 
-                          onClick={() => updateVideo(v.id)}
-                          className="px-6 py-2 bg-green-600 rounded-xl font-bold hover:bg-green-500 transition-all flex items-center gap-2"
-                        >
-                          <Save size={18} /> 저장
-                        </button>
-                        <button 
-                          onClick={() => setEditingVideoId(null)}
-                          className="px-6 py-2 bg-gray-600 rounded-xl font-bold hover:bg-gray-500 transition-all"
-                        >
-                          취소
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex gap-6 items-center">
-                      <div className="w-40 aspect-video bg-black rounded-2xl overflow-hidden shadow-lg flex-shrink-0">
-                        <img src={`https://img.youtube.com/vi/${v.youtubeId}/mqdefault.jpg`} className="w-full h-full object-cover" alt="thumb" />
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-black text-lg mb-1">{v.title}</h4>
-                        <p className="text-xs text-gray-500 line-clamp-2">{v.description}</p>
-                      </div>
-                      <div className="flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                        <button 
-                          onClick={() => moveVideo(v.id, 'up')}
-                          disabled={idx === 0}
-                          className="p-2 bg-blue-600 rounded-xl hover:bg-blue-500 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-                          title="위로 이동"
-                        >
-                          <ChevronUp size={20} />
-                        </button>
-                        <button 
-                          onClick={() => moveVideo(v.id, 'down')}
-                          disabled={idx === props.videos.length - 1}
-                          className="p-2 bg-blue-600 rounded-xl hover:bg-blue-500 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-                          title="아래로 이동"
-                        >
-                          <ChevronDown size={20} />
-                        </button>
-                      </div>
-                      <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                        <button 
-                          onClick={() => {
-                            setEditingVideoId(v.id);
-                            setEditingVideoData({ title: v.title, description: v.description });
-                          }}
-                          className="p-3 bg-blue-600 rounded-xl hover:bg-blue-500 transition-all"
-                          title="수정"
-                        >
-                          <Edit size={20} />
-                        </button>
-                        <button 
-                          onClick={() => deleteItem('videos', v.id)} 
-                          className="p-3 bg-red-600 rounded-xl hover:bg-red-500 transition-all"
-                          title="삭제"
-                        >
-                          <Trash2 size={20}/>
-                        </button>
-                      </div>
-                    </div>
-                  )}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {props.videos.map(v => (
+                <div key={v.id} className="glass-card p-5 rounded-[2.5rem] flex gap-6 items-center group relative">
+                  <div className="w-40 aspect-video bg-black rounded-2xl overflow-hidden shadow-lg flex-shrink-0">
+                    <img src={`https://img.youtube.com/vi/${v.youtubeId}/mqdefault.jpg`} className="w-full h-full object-cover" alt="thumb" />
+                  </div>
+                  <div className="flex-1 pr-10">
+                    <h4 className="font-black text-lg mb-1 truncate">{v.title}</h4>
+                    <p className="text-xs text-gray-500 line-clamp-2">{v.description}</p>
+                  </div>
+                  <button onClick={() => deleteItem('videos', v.id)} className="absolute right-6 p-3 text-red-400 hover:bg-red-400/10 rounded-2xl transition-all opacity-0 group-hover:opacity-100"><Trash2 size={22}/></button>
                 </div>
               ))}
             </div>
@@ -1284,7 +1139,7 @@ const AdminPanel: React.FC<{
                     <input
                       type="file"
                       ref={resourceFileRef}
-                      accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt"
+                      accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt"
                       className="hidden"
                       onChange={handleResourceFileUpload}
                     />
@@ -1312,6 +1167,10 @@ const AdminPanel: React.FC<{
 
             <div className="grid grid-cols-1 gap-4">
               {props.resources.map(r => (
+                <div key={r.id} className="glass-card p-6 rounded-2xl flex justify-between items-center group">
+                  <div className="flex gap-5 items-center">
+                    <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center text-blue-400 group-hover:bg-blue-500 group-hover:text-white
+                    {props.resources.map(r => (
                 <div key={r.id} className="glass-card p-6 rounded-2xl flex justify-between items-center group">
                   <div className="flex gap-5 items-center">
                     <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center text-blue-400 group-hover:bg-blue-500 group-hover:text-white transition-colors">

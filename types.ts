@@ -36,7 +36,6 @@ export interface ReviewVideo {
   title: string;
   description: string;
   youtubeId: string;
-  order?: number;
 }
 
 export interface QnAPost {
